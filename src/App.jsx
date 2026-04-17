@@ -1,14 +1,20 @@
 import { useState } from "react";
 import { Toaster, toast } from "react-hot-toast";
 import { translationAPI } from "./services/api";
+import { historyService } from "./services/firestoreService";
+import { useAuth } from "./context/AuthContext";
 
 import Header from "./components/Header";
 import LanguageDropdown from "./components/LanguageDropdown";
 import ActionButtons from "./components/ActionButtons";
 import RiskIndicator from "./components/RiskIndicator";
 import SwapButton from "./components/SwapButton";
+import HistoryPanel from "./components/HistoryPanel";
+import FeedbackModal from "./components/FeedbackModal";
 
 export default function App() {
+  const { user } = useAuth();
+
   const [text, setText] = useState("");
   const [sourceLang, setSourceLang] = useState("nepali");
   const [targetLang, setTargetLang] = useState("english");
@@ -18,6 +24,16 @@ export default function App() {
 
   const [sourceDropdownOpen, setSourceDropdownOpen] = useState(false);
   const [targetDropdownOpen, setTargetDropdownOpen] = useState(false);
+
+  // History & Feedback state
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [feedbackOpen, setFeedbackOpen] = useState(false);
+  const [savingHistory, setSavingHistory] = useState(false);
+  const [isSaved, setIsSaved] = useState(false);    // true once current translation is saved
+  const [savedDocId, setSavedDocId] = useState(null); // Firestore doc ID of the saved entry
+
+  // Track the last translation for saving / feedback
+  const [lastTranslation, setLastTranslation] = useState(null);
 
   const languages = [
     { code: "nepali", label: "Nepali" },
@@ -29,13 +45,13 @@ export default function App() {
     if (!currentText.trim()) {
       setResult("");
       setRiskScore(null);
+      setLastTranslation(null);
       return;
     }
 
     try {
       setLoading(true);
 
-      // Call the centralized service instead of direct axios
       const data = await translationAPI.translateText(
         currentText,
         currentSource,
@@ -44,6 +60,17 @@ export default function App() {
 
       setResult(data.translated_text);
       setRiskScore(data.cultural_risk_score);
+      setIsSaved(false);    // reset saved state for each new translation
+      setSavedDocId(null);
+
+      // Store last translation details for save/feedback
+      setLastTranslation({
+        sourceText: currentText,
+        translatedText: data.translated_text,
+        sourceLang: currentSource,
+        targetLang: currentTarget,
+        culturalRiskScore: data.cultural_risk_score ?? 0,
+      });
     } catch (err) {
       console.error(err);
       toast.error("Translation failed. Please try again.");
@@ -58,13 +85,65 @@ export default function App() {
     setText(result);
     setResult("");
     setRiskScore(null);
+    setLastTranslation(null);
+    setIsSaved(false);
+    setSavedDocId(null);
+  };
+
+  // Toggle save/unsave for current translation
+  const handleSaveToHistory = async () => {
+    if (!user) {
+      toast.error("Sign in to save translations.");
+      return;
+    }
+    if (!lastTranslation) return;
+
+    setSavingHistory(true);
+    try {
+      if (isSaved && savedDocId) {
+        // ── Unsave: delete the Firestore entry ──────────────────────────────
+        await historyService.deleteOne(user.uid, savedDocId);
+        setIsSaved(false);
+        setSavedDocId(null);
+        toast.success("Removed from history.");
+      } else {
+        // ── Save: create the Firestore entry ───────────────────────────────
+        const docId = await historyService.save(user.uid, lastTranslation);
+        setIsSaved(true);
+        setSavedDocId(docId);
+        toast.success("Translation saved to history!");
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to update history. Please try again.");
+    } finally {
+      setSavingHistory(false);
+    }
+  };
+
+  // Restore a history item back to the translator
+  const handleRestore = (item) => {
+    setText(item.sourceText);
+    setSourceLang(item.sourceLang);
+    setTargetLang(item.targetLang);
+    setResult(item.translatedText);
+    setRiskScore(item.culturalRiskScore ?? null);
+    setIsSaved(true);       // restored from history = already saved
+    setSavedDocId(item.id); // store its doc ID so the star can unsave it
+    setLastTranslation({
+      sourceText: item.sourceText,
+      translatedText: item.translatedText,
+      sourceLang: item.sourceLang,
+      targetLang: item.targetLang,
+      culturalRiskScore: item.culturalRiskScore ?? 0,
+    });
   };
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] dark:bg-gray-950 flex flex-col font-sans transition-colors duration-200">
       <Toaster position="top-center" reverseOrder={false} />
 
-      <Header />
+      <Header onHistoryOpen={() => setHistoryOpen(true)} />
 
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-10 flex flex-col">
         <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-md border border-gray-100 dark:border-gray-800 flex flex-col lg:flex-row flex-1 min-h-[500px] relative transition-colors duration-200">
@@ -126,7 +205,7 @@ export default function App() {
             <SwapButton onClick={handleSwap} />
           </div>
 
-          {/* Right Panel: Output Textarea */}
+          {/* Right Panel: Output */}
           <div className="flex-1 flex flex-col w-full bg-gray-50/30 dark:bg-gray-900 lg:rounded-r-2xl overflow-hidden transition-colors">
             <div className="lg:pl-8 px-6 py-4 flex items-center gap-4 border-t lg:border-t-0 bg-gray-50/50 dark:bg-gray-800/50 border-b border-gray-100 dark:border-gray-800 min-h-[76px] z-10 w-full relative transition-colors">
               <LanguageDropdown
@@ -167,7 +246,50 @@ export default function App() {
               <div className="flex justify-between items-center mt-2 relative min-h-[32px]">
                 {result ? (
                   <>
-                    <ActionButtons result={result} />
+                    <div className="flex items-center gap-1">
+                      <ActionButtons result={result} />
+
+                      {/* ★ Save / Unsave toggle button */}
+                      <button
+                        onClick={handleSaveToHistory}
+                        disabled={savingHistory || !lastTranslation}
+                        title={
+                          !user ? "Sign in to save"
+                            : isSaved ? "Click to remove from history"
+                              : "Save to history"
+                        }
+                        className={`p-1.5 transition-colors rounded-full border border-transparent
+                          disabled:cursor-not-allowed
+                          ${isSaved
+                            ? "text-amber-500 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-500 dark:hover:text-red-400 hover:border-red-200 dark:hover:border-red-800"
+                            : "text-gray-400 dark:text-gray-500 hover:text-amber-500 dark:hover:text-amber-400 hover:bg-amber-50 dark:hover:bg-gray-800 hover:border-amber-100 dark:hover:border-gray-700 disabled:opacity-40"
+                          }`}
+                      >
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          viewBox="0 0 24 24"
+                          className="w-5 h-5"
+                          fill={isSaved || savingHistory ? "#f59e0b" : "none"}
+                          stroke={isSaved ? "#f59e0b" : "currentColor"}
+                          strokeWidth={1.5}
+                        >
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M11.48 3.499a.562.562 0 011.04 0l2.125 5.111a.563.563 0 00.475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 00-.182.557l1.285 5.385a.562.562 0 01-.84.61l-4.725-2.885a.563.563 0 00-.586 0L6.982 20.54a.562.562 0 01-.84-.61l1.285-5.386a.562.562 0 00-.182-.557l-4.204-3.602a.563.563 0 01.321-.988l5.518-.442a.563.563 0 00.475-.345L11.48 3.5z" />
+                        </svg>
+                      </button>
+
+                      {/* 💬 Feedback button */}
+                      {user && lastTranslation && (
+                        <button
+                          onClick={() => setFeedbackOpen(true)}
+                          title="Give feedback"
+                          className="p-1.5 text-gray-400 dark:text-gray-500 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-gray-800 transition-colors rounded-full border border-transparent hover:border-blue-100 dark:hover:border-gray-700"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.755-4.133a1.14 1.14 0 01.865-.501 48.172 48.172 0 003.423-.379c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0012 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018z" />
+                          </svg>
+                        </button>
+                      )}
+                    </div>
                     <RiskIndicator riskScore={riskScore} />
                   </>
                 ) : (
@@ -178,6 +300,25 @@ export default function App() {
           </div>
         </div>
       </main>
+
+      {/* History slide-in panel */}
+      <HistoryPanel
+        isOpen={historyOpen}
+        onClose={() => setHistoryOpen(false)}
+        onRestore={handleRestore}
+      />
+
+      {/* Feedback modal */}
+      {lastTranslation && (
+        <FeedbackModal
+          isOpen={feedbackOpen}
+          onClose={() => setFeedbackOpen(false)}
+          sourceText={lastTranslation.sourceText}
+          translatedText={lastTranslation.translatedText}
+          sourceLang={lastTranslation.sourceLang}
+          targetLang={lastTranslation.targetLang}
+        />
+      )}
     </div>
   );
 }
