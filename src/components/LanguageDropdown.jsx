@@ -6,7 +6,8 @@ export default function LanguageDropdown({
   onSelectLang, 
   isOpen, 
   setIsOpen, 
-  closeOther 
+  closeOther,
+  overrideLabel
 }) {
   const dropdownRef = useRef(null);
 
@@ -30,10 +31,10 @@ export default function LanguageDropdown({
       <button
         type="button"
         onClick={toggleDropdown}
-        className="w-full sm:w-40 flex items-center justify-between bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-200 py-2.5 pl-4 pr-3 rounded-xl shadow-[0_2px_4px_rgba(0,0,0,0.02)] font-semibold focus:outline-none hover:border-gray-400 dark:hover:border-gray-600 transition-all cursor-pointer ring-1 ring-transparent"
+        className={`w-full ${overrideLabel ? "sm:w-60" : "sm:w-48"} flex items-center justify-between bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-200 py-2.5 pl-4 pr-3 rounded-xl shadow-[0_2px_4px_rgba(0,0,0,0.02)] font-semibold focus:outline-none hover:border-gray-400 dark:hover:border-gray-600 transition-all cursor-pointer ring-1 ring-transparent truncate`}
       >
-        {languages.find(l => l.code === selectedLang)?.label}
-        <svg className="w-5 h-5 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <span className="truncate">{overrideLabel || languages.find(l => l.code === selectedLang)?.label}</span>
+        <svg className="w-5 h-5 text-gray-400 dark:text-gray-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M19 9l-7 7-7-7" />
         </svg>
       </button>

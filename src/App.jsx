@@ -22,6 +22,7 @@ export default function App() {
   const [text, setText] = useState("");
   const [sourceLang, setSourceLang] = useState("nepali");
   const [targetLang, setTargetLang] = useState("english");
+  const [isAutoDetect, setIsAutoDetect] = useState(true);
   const [result, setResult] = useState("");
   const [loading, setLoading] = useState(false);
   const [riskScore, setRiskScore] = useState(null);
@@ -56,10 +57,35 @@ export default function App() {
   });
 
   const languages = [
+    { code: "auto", label: "Detect Language" },
     { code: "nepali", label: "Nepali" },
     { code: "sinhala", label: "Sinhala" },
     { code: "english", label: "English" },
   ];
+
+  // ── Automatic Language Detection ───────────────────────────────────────────
+  useEffect(() => {
+    if (!text.trim() || !isAutoDetect) return;
+
+    // Heuristic detection using Unicode Script Ranges
+    const hasSinhala = /[\u0D80-\u0DFF]/.test(text);
+    const hasDevanagari = /[\u0900-\u097F]/.test(text);
+    const hasLatin = /[a-zA-Z]/.test(text);
+
+    let detected = null;
+    if (hasSinhala) detected = "sinhala";
+    else if (hasDevanagari) detected = "nepali";
+    else if (hasLatin) detected = "english";
+
+    if (detected && detected !== sourceLang) {
+      setSourceLang(detected);
+      
+      // Also shift target if it clashes
+      if (detected === targetLang) {
+        setTargetLang(detected === "english" ? "nepali" : "english");
+      }
+    }
+  }, [text, isAutoDetect, sourceLang, targetLang]);
 
   const handleTranslate = async (currentText, currentSource, currentTarget) => {
     if (!currentText.trim()) {
@@ -100,6 +126,7 @@ export default function App() {
   };
 
   const handleSwap = () => {
+    setIsAutoDetect(false);
     setSourceLang(targetLang);
     setTargetLang(sourceLang);
     setText(result);
@@ -213,11 +240,19 @@ export default function App() {
             <div className="px-6 py-4 flex items-center lg:justify-start gap-4 bg-gray-50/50 dark:bg-gray-800/50 border-b border-gray-100 dark:border-gray-800 min-h-[76px] z-20 transition-colors">
               <LanguageDropdown
                 languages={languages}
-                selectedLang={sourceLang}
-                onSelectLang={setSourceLang}
+                selectedLang={isAutoDetect ? "auto" : sourceLang}
+                onSelectLang={(code) => {
+                  if (code === "auto") {
+                    setIsAutoDetect(true);
+                  } else {
+                    setIsAutoDetect(false);
+                    setSourceLang(code);
+                  }
+                }}
                 isOpen={sourceDropdownOpen}
                 setIsOpen={setSourceDropdownOpen}
                 closeOther={() => setTargetDropdownOpen(false)}
+                overrideLabel={isAutoDetect && text.trim() ? `Detect Language: ${languages.find(l => l.code === sourceLang)?.label}` : null}
               />
             </div>
 
