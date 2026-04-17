@@ -4,6 +4,10 @@ import {
   signInWithPopup,
   signOut as firebaseSignOut,
   onAuthStateChanged,
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  sendPasswordResetEmail,
+  updateProfile,
 } from "firebase/auth";
 
 const AuthContext = createContext(null);
@@ -24,12 +28,39 @@ export function AuthProvider({ children }) {
     await signInWithPopup(auth, googleProvider);
   };
 
+  const signInWithEmail = async (email, password) => {
+    await signInWithEmailAndPassword(auth, email, password);
+  };
+
+  const registerWithEmail = async (email, password, displayName) => {
+    const credential = await createUserWithEmailAndPassword(auth, email, password);
+    if (displayName) {
+      await updateProfile(credential.user, { displayName });
+      // Refresh user so displayName is reflected immediately
+      setUser({ ...credential.user, displayName });
+    }
+  };
+
+  const sendPasswordReset = async (email) => {
+    await sendPasswordResetEmail(auth, email);
+  };
+
   const signOut = async () => {
     await firebaseSignOut(auth);
   };
 
   return (
-    <AuthContext.Provider value={{ user, authLoading, signInWithGoogle, signOut }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        authLoading,
+        signInWithGoogle,
+        signInWithEmail,
+        registerWithEmail,
+        sendPasswordReset,
+        signOut,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

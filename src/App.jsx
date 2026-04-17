@@ -11,6 +11,7 @@ import RiskIndicator from "./components/RiskIndicator";
 import SwapButton from "./components/SwapButton";
 import HistoryPanel from "./components/HistoryPanel";
 import FeedbackModal from "./components/FeedbackModal";
+import AuthModal from "./components/AuthModal";
 
 export default function App() {
   const { user } = useAuth();
@@ -34,6 +35,10 @@ export default function App() {
 
   // Track the last translation for saving / feedback
   const [lastTranslation, setLastTranslation] = useState(null);
+
+  // Auth modal & dismiss-able disclaimer
+  const [authModalOpen, setAuthModalOpen] = useState(false);
+  const [bannerDismissed, setBannerDismissed] = useState(false);
 
   const languages = [
     { code: "nepali", label: "Nepali" },
@@ -144,6 +149,36 @@ export default function App() {
       <Toaster position="top-center" reverseOrder={false} />
 
       <Header onHistoryOpen={() => setHistoryOpen(true)} />
+
+      {/* ── Guest login disclaimer banner ─────────────────────────────────── */}
+      {!user && !bannerDismissed && (
+        <div className="w-full bg-gradient-to-r from-blue-600/10 via-indigo-600/10 to-purple-600/10 dark:from-blue-900/30 dark:via-indigo-900/30 dark:to-purple-900/30 border-b border-blue-200/60 dark:border-blue-800/40 animate-fade-in">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2.5 flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <span className="flex-shrink-0 w-7 h-7 rounded-full bg-blue-100 dark:bg-blue-900/60 flex items-center justify-center">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="w-4 h-4 text-blue-600 dark:text-blue-400">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z" />
+                </svg>
+              </span>
+              <p className="text-sm text-blue-800 dark:text-blue-200 truncate">
+                <span className="font-semibold">Sign in to save your translations.</span>
+                <span className="hidden sm:inline text-blue-700/80 dark:text-blue-300/80"> Your history is private and synced across devices.</span>
+              </p>
+            </div>
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <button
+                onClick={() => setBannerDismissed(true)}
+                aria-label="Dismiss"
+                className="p-1 rounded-full text-blue-500 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/40 transition-colors"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-10 flex flex-col">
         <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-md border border-gray-100 dark:border-gray-800 flex flex-col lg:flex-row flex-1 min-h-[500px] relative transition-colors duration-200">
@@ -319,6 +354,9 @@ export default function App() {
           targetLang={lastTranslation.targetLang}
         />
       )}
+
+      {/* Auth modal (also accessible from disclaimer banner) */}
+      <AuthModal isOpen={authModalOpen} onClose={() => setAuthModalOpen(false)} />
     </div>
   );
 }

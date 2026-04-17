@@ -26,3 +26,7 @@
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
+
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
