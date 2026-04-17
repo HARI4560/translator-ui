@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 
-const FORMSPREE_URL = "https://formspree.io/f/YOUR_FORM_ID"; // ← replace with your Formspree form ID
+const FORMSPREE_URL = "https://formspree.io/f/meevglky"; // ← replace with your Formspree form ID
 
 const SUBJECTS = [
   "General Inquiry",
@@ -11,13 +11,13 @@ const SUBJECTS = [
 ];
 
 export default function ContactModal({ isOpen, onClose }) {
-  const [name, setName]       = useState("");
-  const [email, setEmail]     = useState("");
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
   const [subject, setSubject] = useState(SUBJECTS[0]);
   const [message, setMessage] = useState("");
-  const [errors, setErrors]   = useState({});
-  const [status, setStatus]   = useState("idle"); // "idle" | "sending" | "success" | "error"
-  const overlayRef            = useRef(null);
+  const [errors, setErrors] = useState({});
+  const [status, setStatus] = useState("idle"); // "idle" | "sending" | "success" | "error"
+  const overlayRef = useRef(null);
 
   // Body scroll lock
   useEffect(() => {
@@ -45,8 +45,8 @@ export default function ContactModal({ isOpen, onClose }) {
 
   const validate = () => {
     const e = {};
-    if (!name.trim())    e.name    = "Name is required.";
-    if (!email.trim())   e.email   = "Email is required.";
+    if (!name.trim()) e.name = "Name is required.";
+    if (!email.trim()) e.email = "Email is required.";
     else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) e.email = "Enter a valid email.";
     if (!message.trim()) e.message = "Message cannot be empty.";
     else if (message.trim().length < 10) e.message = "Please write at least 10 characters.";
@@ -61,9 +61,9 @@ export default function ContactModal({ isOpen, onClose }) {
     setStatus("sending");
     try {
       const res = await fetch(FORMSPREE_URL, {
-        method:  "POST",
+        method: "POST",
         headers: { "Content-Type": "application/json", Accept: "application/json" },
-        body:    JSON.stringify({ name, email, subject, message }),
+        body: JSON.stringify({ name, email, subject, message }),
       });
       if (res.ok) {
         setStatus("success");
@@ -252,9 +252,8 @@ function Field({ label, id, error, children }) {
 }
 
 function inputCls(error) {
-  return `w-full px-4 py-2.5 rounded-xl border text-sm bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 outline-none transition-all ${
-    error
+  return `w-full px-4 py-2.5 rounded-xl border text-sm bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 outline-none transition-all ${error
       ? "border-red-400 dark:border-red-500 focus:ring-2 focus:ring-red-200 dark:focus:ring-red-800"
       : "border-gray-200 dark:border-gray-700 focus:border-blue-500 dark:focus:border-blue-400 focus:ring-2 focus:ring-blue-200 dark:focus:ring-blue-900"
-  }`;
+    }`;
 }
