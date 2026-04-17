@@ -34,6 +34,7 @@ export default function ResetPasswordModal({ oobCode, onDone }) {
   const [resendEmail, setResendEmail]     = useState("");
   const [resendLoading, setResendLoading] = useState(false);
   const [resendDone, setResendDone]       = useState(false);
+  const [resendError, setResendError]     = useState("");
 
   // ── Verify the oobCode as soon as the component mounts ─────────────────────
   useEffect(() => {
