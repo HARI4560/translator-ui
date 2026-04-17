@@ -164,6 +164,8 @@ export default function App() {
       <Toaster position="top-center" reverseOrder={false} />
 
       <Header onHistoryOpen={() => setHistoryOpen(true)} />
+      {/* Spacer to offset fixed header height */}
+      <div className="h-[73px] flex-shrink-0" />
 
       {/* ── Guest login disclaimer banner ─────────────────────────────────── */}
       {!user && !bannerDismissed && (
