@@ -41,10 +41,13 @@ export default function ResetPasswordModal({ oobCode, onDone }) {
     verifyPasswordResetCode(auth, oobCode)
       .then((linkedEmail) => {
         setEmail(linkedEmail);
-        setResendEmail(linkedEmail); // pre-fill resend field
+        setResendEmail(linkedEmail);
         setStatus("valid");
       })
-      .catch(() => setStatus("invalid"));
+      .catch((err) => {
+        console.error("[ResetPassword] verifyPasswordResetCode failed:", err?.code, err?.message);
+        setStatus("invalid");
+      });
   }, [oobCode]);
 
   // ── Submit new password ─────────────────────────────────────────────────────
@@ -71,14 +74,21 @@ export default function ResetPasswordModal({ oobCode, onDone }) {
     e.preventDefault();
     if (!resendEmail.trim()) return;
     setResendLoading(true);
+    setResendError("");
     try {
-      await sendPasswordResetEmail(auth, resendEmail.trim(), {
-        url: window.location.origin,
-      });
+      // No actionCodeSettings here — Firebase Console action URL handles the link destination
+      await sendPasswordResetEmail(auth, resendEmail.trim());
       setResendDone(true);
-    } catch {
-      // silently succeed — don't reveal whether email exists
-      setResendDone(true);
+    } catch (err) {
+      console.error("[ResetPassword] sendPasswordResetEmail failed:", err?.code, err?.message);
+      const map = {
+        "auth/invalid-email":          "Please enter a valid email address.",
+        "auth/user-not-found":         "No account found with this email.",
+        "auth/too-many-requests":      "Too many attempts. Please try again later.",
+        "auth/network-request-failed": "Network error. Check your connection.",
+        "auth/unauthorized-domain":    "This domain is not authorized in Firebase. Contact support.",
+      };
+      setResendError(map[err?.code] ?? `Error: ${err?.code ?? "unknown"}. Please try again.`);
     } finally {
       setResendLoading(false);
     }
@@ -174,6 +184,15 @@ export default function ResetPasswordModal({ oobCode, onDone }) {
                   required
                   className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-sm text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 dark:focus:ring-blue-900 transition-all"
                 />
+                {/* Resend error */}
+                {resendError && (
+                  <div className="flex items-start gap-2 px-4 py-3 rounded-xl bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-sm text-red-600 dark:text-red-400">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4 flex-shrink-0 mt-0.5">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+                    </svg>
+                    {resendError}
+                  </div>
+                )}
                 <button
                   type="submit"
                   disabled={resendLoading}
