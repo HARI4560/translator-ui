@@ -13,6 +13,8 @@ import HistoryPanel from "./components/HistoryPanel";
 import FeedbackModal from "./components/FeedbackModal";
 import AuthModal from "./components/AuthModal";
 import ResetPasswordModal from "./components/ResetPasswordModal";
+import Footer from "./components/Footer";
+import ContactModal from "./components/ContactModal";
 
 export default function App() {
   const { user } = useAuth();
@@ -40,6 +42,7 @@ export default function App() {
   // Auth modal & dismiss-able disclaimer
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [bannerDismissed, setBannerDismissed] = useState(false);
+  const [contactOpen, setContactOpen] = useState(false);
 
   // Detect Firebase password-reset link params on mount
   const [resetOobCode, setResetOobCode] = useState(() => {
@@ -348,6 +351,9 @@ export default function App() {
         </div>
       </main>
 
+      {/* Footer */}
+      <Footer onContactOpen={() => setContactOpen(true)} />
+
       {/* History slide-in panel */}
       <HistoryPanel
         isOpen={historyOpen}
@@ -370,13 +376,16 @@ export default function App() {
       {/* Auth modal (also accessible from disclaimer banner) */}
       <AuthModal isOpen={authModalOpen} onClose={() => setAuthModalOpen(false)} />
 
+      {/* Contact Us modal */}
+      <ContactModal isOpen={contactOpen} onClose={() => setContactOpen(false)} />
+
       {/* In-app Firebase password reset handler */}
       {showResetModal && resetOobCode && (
         <ResetPasswordModal
           oobCode={resetOobCode}
           onDone={() => {
             setShowResetModal(false);
-            setAuthModalOpen(true); // open sign-in modal after reset
+            setAuthModalOpen(true);
           }}
         />
       )}
