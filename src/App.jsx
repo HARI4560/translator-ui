@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Toaster, toast } from "react-hot-toast";
 import { translationAPI } from "./services/api";
 import { historyService } from "./services/firestoreService";
@@ -12,6 +12,7 @@ import SwapButton from "./components/SwapButton";
 import HistoryPanel from "./components/HistoryPanel";
 import FeedbackModal from "./components/FeedbackModal";
 import AuthModal from "./components/AuthModal";
+import ResetPasswordModal from "./components/ResetPasswordModal";
 
 export default function App() {
   const { user } = useAuth();
@@ -39,6 +40,17 @@ export default function App() {
   // Auth modal & dismiss-able disclaimer
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [bannerDismissed, setBannerDismissed] = useState(false);
+
+  // Detect Firebase password-reset link params on mount
+  const [resetOobCode, setResetOobCode] = useState(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("mode") === "resetPassword") return params.get("oobCode") ?? null;
+    return null;
+  });
+  const [showResetModal, setShowResetModal] = useState(() => {
+    const params = new URLSearchParams(window.location.search);
+    return params.get("mode") === "resetPassword" && !!params.get("oobCode");
+  });
 
   const languages = [
     { code: "nepali", label: "Nepali" },
@@ -357,6 +369,17 @@ export default function App() {
 
       {/* Auth modal (also accessible from disclaimer banner) */}
       <AuthModal isOpen={authModalOpen} onClose={() => setAuthModalOpen(false)} />
+
+      {/* In-app Firebase password reset handler */}
+      {showResetModal && resetOobCode && (
+        <ResetPasswordModal
+          oobCode={resetOobCode}
+          onDone={() => {
+            setShowResetModal(false);
+            setAuthModalOpen(true); // open sign-in modal after reset
+          }}
+        />
+      )}
     </div>
   );
 }
