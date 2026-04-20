@@ -86,6 +86,22 @@ export default function App() {
       }
     }
   }, [text, isAutoDetect, sourceLang, targetLang]);
+  
+  // ── Theme management ───────────────────────────────────────────────────────
+  useEffect(() => {
+    if (!user) {
+      // Guest mode: always white/light
+      document.documentElement.classList.remove("dark");
+    } else {
+      // Logged-in: apply saved preference (default to light if none)
+      const savedTheme = localStorage.getItem("theme");
+      if (savedTheme === "dark") {
+        document.documentElement.classList.add("dark");
+      } else {
+        document.documentElement.classList.remove("dark");
+      }
+    }
+  }, [user]);
 
   const handleTranslate = async (currentText, currentSource, currentTarget) => {
     if (!currentText.trim()) {

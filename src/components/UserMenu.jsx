@@ -8,11 +8,8 @@ export default function UserMenu() {
 
   // ── Theme state managed inline ───────────────────────────────────────────────
   const [isDark, setIsDark] = useState(() => {
-    // Read initial value synchronously from DOM/localStorage
     if (typeof window !== "undefined") {
-      const saved = localStorage.getItem("theme");
-      const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-      return saved === "dark" || (!saved && prefersDark);
+      return localStorage.getItem("theme") === "dark";
     }
     return false;
   });
