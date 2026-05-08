@@ -3,13 +3,13 @@ import UserMenu from "./UserMenu";
 import AuthModal from "./AuthModal";
 import { useAuth } from "../context/AuthContext";
 
-export default function Header({ onHistoryOpen }) {
-  const { user, authLoading } = useAuth();
+export default function Header({ onHistoryOpen, onAdminPanelOpen }) {
+  const { user, isAdmin, authLoading } = useAuth();
   const [authModalOpen, setAuthModalOpen] = useState(false);
 
   return (
     <>
-      <header className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 fixed top-0 left-0 right-0 z-50 shadow-sm transition-colors duration-200">
+      <header className={`bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 fixed top-0 right-0 z-50 shadow-sm transition-all duration-200 ${isAdmin ? "left-0 md:left-64" : "left-0"}`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between gap-4">
           {/* Brand */}
           <div className="flex items-center gap-3">
@@ -20,8 +20,8 @@ export default function Header({ onHistoryOpen }) {
 
           {/* Right side actions */}
           <div className="flex items-center gap-2 sm:gap-3">
-            {/* History button — only if signed in */}
-            {user && (
+            {/* History button — only if standard user */}
+            {user && !isAdmin && (
               <button
                 onClick={onHistoryOpen}
                 title="Translation History"
@@ -33,6 +33,8 @@ export default function Header({ onHistoryOpen }) {
                 <span className="hidden sm:inline">History</span>
               </button>
             )}
+
+
 
             {/* Auth */}
             {authLoading ? (

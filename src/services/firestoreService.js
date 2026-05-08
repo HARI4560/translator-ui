@@ -97,3 +97,67 @@ export const feedbackService = {
     return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
   },
 };
+
+// ─── Contact Messages ──────────────────────────────────────────────────────────
+
+export const contactService = {
+  submit: async (entry) => {
+    const ref = collection(db, "contactMessages");
+    await addDoc(ref, { ...entry, timestamp: serverTimestamp(), status: 'unread' });
+  },
+
+  getAll: async () => {
+    const ref = collection(db, "contactMessages");
+    const q = query(ref, orderBy("timestamp", "desc"));
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+  },
+  
+  markAsRead: async (docId) => {
+    // Only used to demonstrate marking a message as read in the admin panel
+    const docRef = doc(db, "contactMessages", docId);
+    await writeBatch(db).update(docRef, { status: 'read' }).commit(); // Actually just direct update is fine but using batch is okay or updateDoc
+  }
+};
+
+// ─── Admin Services ────────────────────────────────────────────────────────────
+
+export const adminService = {
+  getTopFeedbackUsers: async () => {
+    const ref = collection(db, "allFeedback");
+    const snapshot = await getDocs(ref);
+    
+    const userCounts = {};
+    snapshot.docs.forEach((doc) => {
+      const data = doc.data();
+      const email = data.userEmail || "Anonymous";
+      const name = data.userName || "Unknown User";
+      if (!userCounts[email]) {
+        userCounts[email] = { email, name, count: 0 };
+      }
+      userCounts[email].count += 1;
+    });
+
+    const sortedUsers = Object.values(userCounts).sort((a, b) => b.count - a.count);
+    return sortedUsers.slice(0, 10);
+  },
+  
+  getAllFeedback: async () => {
+    const ref = collection(db, "allFeedback");
+    const q = query(ref, orderBy("timestamp", "desc"));
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+  },
+
+  getDashboardMetrics: async () => {
+    const usersSnap = await getDocs(collection(db, "users"));
+    const feedbackSnap = await getDocs(collection(db, "allFeedback"));
+    const msgSnap = await getDocs(collection(db, "contactMessages"));
+    
+    return {
+      totalUsers: usersSnap.size,
+      totalFeedback: feedbackSnap.size,
+      totalMessages: msgSnap.size
+    };
+  }
+};

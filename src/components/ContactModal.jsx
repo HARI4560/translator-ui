@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
-
-const FORMSPREE_URL = "https://formspree.io/f/meevglky"; // ← replace with your Formspree form ID
+import { contactService } from "../services/firestoreService";
+import { useAuth } from "../context/AuthContext";
 
 const SUBJECTS = [
   "General Inquiry",
@@ -11,6 +11,7 @@ const SUBJECTS = [
 ];
 
 export default function ContactModal({ isOpen, onClose }) {
+  const { user } = useAuth();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [subject, setSubject] = useState(SUBJECTS[0]);
@@ -18,6 +19,8 @@ export default function ContactModal({ isOpen, onClose }) {
   const [errors, setErrors] = useState({});
   const [status, setStatus] = useState("idle"); // "idle" | "sending" | "success" | "error"
   const overlayRef = useRef(null);
+
+
 
   // Body scroll lock
   useEffect(() => {
@@ -36,10 +39,19 @@ export default function ContactModal({ isOpen, onClose }) {
   // Reset on open
   useEffect(() => {
     if (isOpen) {
-      setName(""); setEmail(""); setSubject(SUBJECTS[0]);
-      setMessage(""); setErrors({}); setStatus("idle");
+      if (user) {
+        setName(user.displayName || user.email?.split("@")[0] || "");
+        setEmail(user.email || "");
+      } else {
+        setName("");
+        setEmail("");
+      }
+      setSubject(SUBJECTS[0]);
+      setMessage("");
+      setErrors({});
+      setStatus("idle");
     }
-  }, [isOpen]);
+  }, [isOpen, user]);
 
   if (!isOpen) return null;
 
@@ -60,18 +72,8 @@ export default function ContactModal({ isOpen, onClose }) {
 
     setStatus("sending");
     try {
-      const res = await fetch(FORMSPREE_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Accept: "application/json" },
-        body: JSON.stringify({ name, email, subject, message }),
-      });
-      if (res.ok) {
-        setStatus("success");
-      } else {
-        const data = await res.json().catch(() => ({}));
-        console.error("Formspree error:", data);
-        setStatus("error");
-      }
+      await contactService.submit({ name, email, subject, message });
+      setStatus("success");
     } catch (err) {
       console.error("Contact form submit failed:", err);
       setStatus("error");
@@ -92,7 +94,7 @@ export default function ContactModal({ isOpen, onClose }) {
       <div className="relative w-full max-w-lg mx-auto bg-white dark:bg-gray-900 rounded-3xl shadow-2xl border border-gray-100 dark:border-gray-800 overflow-hidden animate-modal-in">
 
         {/* Gradient strip */}
-        <div className="h-1.5 w-full bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500" />
+        {/* <div className="h-1.5 w-full bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500" /> */}
 
         {/* Close */}
         <button
@@ -152,10 +154,11 @@ export default function ContactModal({ isOpen, onClose }) {
                     id="ct-name"
                     type="text"
                     value={name}
-                    onChange={(e) => setName(e.target.value)}
+                    onChange={(e) => !user && setName(e.target.value)}
                     placeholder="Jane Doe"
                     autoComplete="name"
-                    className={inputCls(errors.name)}
+                    readOnly={!!user}
+                    className={`${inputCls(errors.name)} ${user ? "bg-gray-100/80 dark:bg-gray-800/80 cursor-not-allowed text-gray-600 dark:text-gray-400" : ""}`}
                   />
                 </Field>
                 <Field label="Email Address" id="ct-email" error={errors.email}>
@@ -163,10 +166,11 @@ export default function ContactModal({ isOpen, onClose }) {
                     id="ct-email"
                     type="email"
                     value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    onChange={(e) => !user && setEmail(e.target.value)}
                     placeholder="you@example.com"
                     autoComplete="email"
-                    className={inputCls(errors.email)}
+                    readOnly={!!user}
+                    className={`${inputCls(errors.email)} ${user ? "bg-gray-100/80 dark:bg-gray-800/80 cursor-not-allowed text-gray-600 dark:text-gray-400" : ""}`}
                   />
                 </Field>
               </div>
@@ -252,8 +256,8 @@ function Field({ label, id, error, children }) {
 }
 
 function inputCls(error) {
-  return `w-full px-4 py-2.5 rounded-xl border text-sm bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 outline-none transition-all ${error
-      ? "border-red-400 dark:border-red-500 focus:ring-2 focus:ring-red-200 dark:focus:ring-red-800"
-      : "border-gray-200 dark:border-gray-700 focus:border-blue-500 dark:focus:border-blue-400 focus:ring-2 focus:ring-blue-200 dark:focus:ring-blue-900"
+  return `w-full px-4 py-2.5 rounded-xl border text-sm bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 outline-none transition-all disabled:opacity-60 disabled:cursor-not-allowed ${error
+    ? "border-red-400 dark:border-red-500 focus:ring-2 focus:ring-red-200 dark:focus:ring-red-800"
+    : "border-gray-200 dark:border-gray-700 focus:border-blue-500 dark:focus:border-blue-400 focus:ring-2 focus:ring-blue-200 dark:focus:ring-blue-900"
     }`;
 }

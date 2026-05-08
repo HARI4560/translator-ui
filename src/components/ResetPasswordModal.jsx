@@ -20,21 +20,21 @@ const EyeIcon = ({ open }) =>
 
 /* ── status: "verifying" | "valid" | "invalid" | "success" ─────────────────── */
 export default function ResetPasswordModal({ oobCode, onDone }) {
-  const [status, setStatus]     = useState("verifying"); // check code on mount
-  const [email, setEmail]       = useState("");           // email linked to the code
+  const [status, setStatus] = useState("verifying"); // check code on mount
+  const [email, setEmail] = useState("");           // email linked to the code
 
   const [password, setPassword] = useState("");
-  const [confirm, setConfirm]   = useState("");
-  const [showPwd, setShowPwd]   = useState(false);
-  const [showCfm, setShowCfm]   = useState(false);
-  const [loading, setLoading]   = useState(false);
-  const [error, setError]       = useState("");
+  const [confirm, setConfirm] = useState("");
+  const [showPwd, setShowPwd] = useState(false);
+  const [showCfm, setShowCfm] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
   // Resend state
-  const [resendEmail, setResendEmail]     = useState("");
+  const [resendEmail, setResendEmail] = useState("");
   const [resendLoading, setResendLoading] = useState(false);
-  const [resendDone, setResendDone]       = useState(false);
-  const [resendError, setResendError]     = useState("");
+  const [resendDone, setResendDone] = useState(false);
+  const [resendError, setResendError] = useState("");
 
   // ── Verify the oobCode as soon as the component mounts ─────────────────────
   useEffect(() => {
@@ -56,7 +56,7 @@ export default function ResetPasswordModal({ oobCode, onDone }) {
     e.preventDefault();
     setError("");
     if (password.length < 6) { setError("Password must be at least 6 characters."); return; }
-    if (password !== confirm)  { setError("Passwords do not match."); return; }
+    if (password !== confirm) { setError("Passwords do not match."); return; }
 
     setLoading(true);
     try {
@@ -83,11 +83,11 @@ export default function ResetPasswordModal({ oobCode, onDone }) {
     } catch (err) {
       console.error("[ResetPassword] sendPasswordResetEmail failed:", err?.code, err?.message);
       const map = {
-        "auth/invalid-email":          "Please enter a valid email address.",
-        "auth/user-not-found":         "No account found with this email.",
-        "auth/too-many-requests":      "Too many attempts. Please try again later.",
+        "auth/invalid-email": "Please enter a valid email address.",
+        "auth/user-not-found": "No account found with this email.",
+        "auth/too-many-requests": "Too many attempts. Please try again later.",
         "auth/network-request-failed": "Network error. Check your connection.",
-        "auth/unauthorized-domain":    "This domain is not authorized in Firebase. Contact support.",
+        "auth/unauthorized-domain": "This domain is not authorized in Firebase. Contact support.",
       };
       setResendError(map[err?.code] ?? `Error: ${err?.code ?? "unknown"}. Please try again.`);
     } finally {
@@ -106,17 +106,16 @@ export default function ResetPasswordModal({ oobCode, onDone }) {
       {/* Card */}
       <div className="relative w-full max-w-md mx-auto bg-white dark:bg-gray-900 rounded-3xl shadow-2xl border border-gray-100 dark:border-gray-800 overflow-hidden animate-modal-in">
         {/* Gradient strip */}
-        <div className="h-1.5 w-full bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500" />
+        {/* <div className="h-1.5 w-full bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500" /> */}
 
         <div className="px-8 py-8 flex flex-col gap-5">
 
           {/* ── Icon + title ─────────────────────────────────────────────────── */}
           <div className="text-center">
-            <div className={`inline-flex items-center justify-center w-12 h-12 rounded-2xl shadow-lg mb-3 ${
-              status === "invalid" ? "bg-gradient-to-br from-red-400 to-orange-500"
-              : status === "success" ? "bg-gradient-to-br from-green-400 to-emerald-600"
-              : "bg-gradient-to-br from-blue-500 to-indigo-600"
-            }`}>
+            <div className={`inline-flex items-center justify-center w-12 h-12 rounded-2xl shadow-lg mb-3 ${status === "invalid" ? "bg-gradient-to-br from-red-400 to-orange-500"
+                : status === "success" ? "bg-gradient-to-br from-green-400 to-emerald-600"
+                  : "bg-gradient-to-br from-blue-500 to-indigo-600"
+              }`}>
               {status === "invalid" ? (
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="white" className="w-6 h-6">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
@@ -134,14 +133,14 @@ export default function ResetPasswordModal({ oobCode, onDone }) {
             <h2 className="text-xl font-bold text-gray-900 dark:text-white">
               {status === "verifying" ? "Verifying link…"
                 : status === "invalid" ? "Link expired or invalid"
-                : status === "success" ? "Password reset!"
-                : "Set new password"}
+                  : status === "success" ? "Password reset!"
+                    : "Set new password"}
             </h2>
             <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
               {status === "verifying" ? "Please wait a moment"
                 : status === "invalid" ? "This reset link has expired or was already used"
-                : status === "success" ? "You can now sign in with your new password"
-                : `Setting password for ${email}`}
+                  : status === "success" ? "You can now sign in with your new password"
+                    : `Setting password for ${email}`}
             </p>
           </div>
 
@@ -309,9 +308,9 @@ function friendlyError(code) {
   const map = {
     "auth/expired-action-code": "This reset link has expired. Please request a new one.",
     "auth/invalid-action-code": "This reset link is invalid or already used.",
-    "auth/user-disabled":       "This account has been disabled.",
-    "auth/user-not-found":      "No account found for this email.",
-    "auth/weak-password":       "Password must be at least 6 characters.",
+    "auth/user-disabled": "This account has been disabled.",
+    "auth/user-not-found": "No account found for this email.",
+    "auth/weak-password": "Password must be at least 6 characters.",
   };
   return map[code] ?? "Something went wrong. Please try again.";
 }

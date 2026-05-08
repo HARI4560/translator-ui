@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useState } from "react";
-import { auth, googleProvider } from "../firebase";
+import { auth, googleProvider, db } from "../firebase";
 import {
   signInWithPopup,
   signOut as firebaseSignOut,
@@ -9,16 +9,35 @@ import {
   sendPasswordResetEmail,
   updateProfile,
 } from "firebase/auth";
+import { doc, getDoc, setDoc } from "firebase/firestore";
 
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [authLoading, setAuthLoading] = useState(true);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       setUser(currentUser);
+      if (currentUser) {
+        try {
+          const userRef = doc(db, "users", currentUser.uid);
+          const userSnap = await getDoc(userRef);
+          if (userSnap.exists()) {
+            setIsAdmin(userSnap.data().role === 'admin');
+          } else {
+            await setDoc(userRef, { role: 'user', email: currentUser.email });
+            setIsAdmin(false);
+          }
+        } catch (err) {
+          console.error("Failed to check user role:", err);
+          setIsAdmin(false);
+        }
+      } else {
+        setIsAdmin(false);
+      }
       setAuthLoading(false);
     });
     return () => unsubscribe();
@@ -53,6 +72,7 @@ export function AuthProvider({ children }) {
     <AuthContext.Provider
       value={{
         user,
+        isAdmin,
         authLoading,
         signInWithGoogle,
         signInWithEmail,
